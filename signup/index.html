@@ -116,7 +116,7 @@
   </header>
 
   <section class="card" aria-label="Sign-up form">
-    <form id="signup" action="send.php" method="post" novalidate>
+    <form id="signup" action="https://api.web3forms.com/submit" method="post" novalidate>
       <div class="field">
         <label for="email">Email</label>
         <input id="email" name="email" type="email" autocomplete="email" required aria-describedby="email-err">
@@ -127,8 +127,8 @@
         <textarea id="comments" name="comments" maxlength="2000"></textarea>
       </div>
       <div class="hp" aria-hidden="true">
-        <label for="website">Leave this field empty</label>
-        <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+        <label for="botcheck">Leave this field empty</label>
+        <input id="botcheck" name="botcheck" type="checkbox" tabindex="-1">
       </div>
       <button type="submit" id="submit">Send</button>
       <div id="status" class="status" role="status" aria-live="polite"></div>
@@ -149,6 +149,9 @@
 
 <script>
 (function () {
+  // Web3Forms access key: get it free at https://web3forms.com by entering signup@wehear.eu.
+  // Submissions are then emailed to that address. The key is meant to be public in the page.
+  var ACCESS_KEY = '91f7ec34-561c-45a5-8d3c-5b8b1807643d';
   var TO = 'signup@wehear.eu';
   var SUBJECT = 'participant';
   var form = document.getElementById('signup');
@@ -186,10 +189,26 @@
     btn.disabled = true;
     btn.textContent = 'Sending…';
 
-    fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'Accept': 'application/json' } })
-      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    var payload = {
+      access_key: ACCESS_KEY,
+      subject: SUBJECT,
+      from_name: 'WeHear sign-up page',
+      email: email.value.trim(),
+      message: 'Email: ' + email.value.trim() + '\n\nComments:\n' + (comments.value.trim() || '(none)'),
+      botcheck: document.getElementById('botcheck').checked
+    };
+    var send = ACCESS_KEY.indexOf('PASTE') === 0
+      ? Promise.reject(new Error('Web3Forms access key not set'))
+      : fetch(form.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+    send
+      .then(function (r) { return r.json(); })
       .then(function (data) {
-        if (!data || !data.ok) { return Promise.reject(); }
+        if (!data || !data.success) { return Promise.reject(); }
         form.reset();
         btn.textContent = 'Sent';
         show('ok', 'Thank you! We have received your sign-up and will contact you by email.');
